@@ -7,8 +7,24 @@ const nearley = require("nearley");
 const fs = require('fs');
 const { exec } = require("child_process");
 
-var nodes_ldf;
-var grammar_nodes;
+var ldf;
+var grammar_obj;
+var parser;
+var json_data;
+var parser_result;
+var json_obj;
+var output;
+
+var grammar_ne_file = "grammar_header_nodes.ne";
+var grammar_js_file = "grammar_header_nodes.js";
+var ldf_file = "header_nodes.ldf";
+var json_file = "header_nodes.json";
+
+var convert_neTojs = true; //ok
+var readAndParseLdfFile = true; //ok
+var printParserResult = true;
+var writeJsonFile = false;
+var readJsonFile = false;
 
 /**
  * --------------------------------------------------------
@@ -16,7 +32,7 @@ var grammar_nodes;
  * --------------------------------------------------------
  */
 let execPromise = (command) => {
-  return new Promise((resolve, reject)  => {
+  return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
         reject(error.message);
@@ -42,9 +58,9 @@ let readFilePromise = (path) => {
   })
 }
 
-let writeFilePromise = (path) => {
-  return new Promise((resolve,reject) => {
-    fs.writeFile(path, myJson, err => err ? reject(err) : resolve(true));
+let writeFilePromise = (path, json_d) => {
+  return new Promise((resolve, reject) => {
+    fs.writeFile(path, json_d, err => err ? reject(err) : resolve(true));
   })
 }
 
@@ -57,31 +73,58 @@ let writeFilePromise = (path) => {
  */
 let main = async () => {
 
-  //Convert a .ne file to a .js file
-  try {
-    var output = await execPromise("nearleyc ./grammar/grammar_nodes.ne -o ./grammar/grammar_nodes.js");
-    console.log(output);
-  } catch (error) {
-    console.log(error);
-  }
-  
-  grammar_nodes = require("./grammar/grammar_nodes.js");
-  // Create a Parser object from our grammar.
-  const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar_nodes));
-
-  //read LDF file
-  try {
-    nodes_ldf = await readFilePromise('./ldf/nodes.ldf');
-  } catch (error) {
-    console.log("erorri in lettura file");
+  if (convert_neTojs) {
+    //Convert a .ne file to a .js file
+    try {
+      output = await execPromise(`nearleyc ./grammar/${grammar_ne_file} -o ./grammar/${grammar_js_file}`);
+      console.log(output);
+      console.log("Conversion .ne to .js Ok.. \n");
+    } catch (error) {
+      console.log(error);
+    }
+    grammar_obj = require(`./grammar/${grammar_js_file}`);
+    // Create a Parser object from our grammar.
+    parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar_obj));
   }
 
-  // Parse LDF file
-  parser.feed(nodes_ldf);
-  console.log(JSON.stringify(parser.results[0]));
+  if (readAndParseLdfFile) {
+    //read LDF file
+    try {
+      ldf = await readFilePromise(`./ldf/${ldf_file}`);
+      // Parse LDF file
+      parser.feed(ldf);
+      parser_result = parser.results[0];
+    } catch (error) {
+      console.log(error);
+      console.log("erorri in lettura file");
+    }
 
-  writeFilePromise('.json/nodes.json')
+  }
 
+  if (printParserResult) {
+    console.log(parser_result);
+  }
+
+  if (writeJsonFile) {
+    //Write JSON
+    try {
+      json_data = JSON.stringify(parser_result)
+      await writeFilePromise(`./json/${json_file}`, json_data)
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  if (readJsonFile) {
+    //Read JSON
+    try {
+      json_data = await readFilePromise(`./json/${json_file}`);
+      json_obj = JSON.parse(json_data);
+    } catch (error) {
+      console.log(error);
+    }
+    console.log(json_obj);
+  }
 }
 
 main();
@@ -91,23 +134,3 @@ main();
 
 
 
-
-
-// // write JSON string to a file
-// fs.writeFile('user.json', myJson, (err) => {
-//   if (err) {
-//     throw err;
-//   }
-//   console.log("JSON data is saved.");
-// });
-
-
-// const fs = require('fs')
-
-// fs.readFile('/Users/joe/test.txt', 'utf8', (err, data) => {
-//   if (err) {
-//     console.error(err)
-//     return
-//   }
-//   console.log(data)
-// })

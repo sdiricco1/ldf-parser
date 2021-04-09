@@ -6,43 +6,81 @@ start ->
   %}
 
 ldf 
-  -> header_lin_description_file header_protocol_version header_language_version header_speed {%
+  -> header_lin_description_file _ header_protocol_version _ header_language_version _ header_speed _ nodes _ {%
     function(data){
       return {
         header: data[0],
-        protocol_version: data[1],
-        language_version: data[2],
-        speed: data[3]
+        protocol_version: data[2],
+        language_version: data[4],
+        speed: data[6],
+        nodes: data[8]
       }
     }
   %}
 
-
+#############################
+#header
+#############################
 header_lin_description_file 
-  -> "LIN_description_file" ";" _ {%
+  -> "LIN_description_file" ";" {%
     function(data){
       return data[0]
     }
   %}
 header_protocol_version
-  -> "LIN_protocol_version" _ "=" _ "\"" ldf_float "\"" ";" _  {%
+  -> "LIN_protocol_version" _ "=" _ "\"" ldf_float "\"" ";" {%
     function(data){
       return data[5]
     }
   %}
 header_language_version 
-  -> "LIN_language_version" _ "=" _ "\"" ldf_float "\"" ";" _ {%
+  -> "LIN_language_version" _ "=" _ "\"" ldf_float "\"" ";" {%
     function(data){
       return data[5]
     }
   %}
 header_speed
-  -> "LIN_speed" _ "=" _ ldf_float _ "kbps" ";" _ {%
+  -> "LIN_speed" _ "=" _ ldf_float _ "kbps" ";" {%
     function(data){
       return data[4]
     }
   %}
-# header_channel-> "Channel_name" _ "=" _ "\"" ldf_identifier "\"" ";" _
+
+#############################
+#nodes
+#############################
+nodes 
+  -> "Nodes" _ "{" _ nodes_master _ nodes_slaves _ "}" {%
+    function(data){
+      return {
+        master:data[4],
+        slave:data[6]g
+      }
+    }
+  %}
+
+nodes_master 
+  -> "Master:" _ ldf_identifier "," _ ldf_float _ "ms" _ "," _ ldf_float _ "ms" _ ";" {%
+    function(data) {
+      return {
+        name:data[2],
+        timebase: data[5],
+        jitter: data[11]
+      }
+    } 
+  %}
+
+nodes_slaves 
+  -> "Slaves:" _ ldf_identifier ("," _ ldf_identifier):* ";" {%
+  function(data) {
+    let data_filtered = [];
+    data_filtered.push(data[2]);
+    for (const element of data[3]){
+      data_filtered.push(element[2])
+    }
+    return data_filtered;
+  }
+%}
 
 ldf_float ->
       int "." int   {% function(d) {return parseFloat(d[0].v + d[1] + d[2].v)} %}

@@ -1,14 +1,3 @@
-# start ->
-#   ldf
-
-# ldf -> (header_lin_description_file | header_protocol_version | header_language_version | header_speed | header_channel | nodes )
-
-
-# header_lin_description_file -> "LIN_description_file" ";" _
-# header_protocol_version-> "LIN_protocol_version" _ "=" _ "\"" ldf_float "\"" ";" _
-# header_language_version-> "LIN_language_version" _ "=" _ "\"" ldf_float "\"" ";" _
-# header_speed-> "LIN_speed" _ "=" _ ldf_float "kbps" ";" _
-# header_channel-> "Channel_name" _ "=" _ "\"" ldf_identifier "\"" ";" _
 
 nodes 
   -> "Nodes" _ "{" _ nodes_master _ nodes_slaves _ "}" _ {%
